@@ -5,7 +5,7 @@
 // Author: Samuel Riedel, ETH Zurich
 //         Matheus Cavalcante, ETH Zurich
 
-// #define TOP4_STACK
+#include "encoding.h"
 
 .globl _start
 .globl _eoc
@@ -74,7 +74,7 @@ _reset_vector:
     add     sp, sp, t0                                          // offset += 16 * xqueue_size * 4
     // Write the stack limit into the dedicated CSR
     addi    t0, sp, -(STACK_SIZE-4)                             // stack_limit = sp - (STACK_SIZE - 1)
-    csrw    stacklimit, t0                                     // write stack limit into CSR
+    csrw    CSR_STACKLIMIT, t0                                     // write stack limit into CSR
     // Configure the RO cache or directly jump to main
     bnez    a0, _jump_main
     la      t0, ro_cache_end_0                                  // Get peripheral register to set cacheable region
