@@ -16,7 +16,7 @@ uint32_t volatile log_barrier[NUM_CORES * 4]
 uint32_t volatile partial_barrier[NUM_CORES * 4]
     __attribute__((aligned(NUM_CORES * 4), section(".l1")));
 
-void mempool_barrier_init(uint32_t core_id) {
+void mempool_barrier_init(uint32_t core_id, uint32_t num_cores) {
   if (core_id == 0) {
     // Initialize the barrier
     barrier = 0;
@@ -26,11 +26,11 @@ void mempool_barrier_init(uint32_t core_id) {
     mempool_wfi();
   }
   // Initialize log-barriers synch variables in parallel
-  for (uint32_t i = core_id; i < NUM_CORES * 4; i += NUM_CORES) {
+  for (uint32_t i = core_id; i < num_cores * 4; i += num_cores) {
     log_barrier[i] = 0;
     partial_barrier[i] = 0;
   }
-  mempool_barrier(NUM_CORES);
+  mempool_barrier(num_cores);
 }
 
 void mempool_barrier(uint32_t num_cores) {

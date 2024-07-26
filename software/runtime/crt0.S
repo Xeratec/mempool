@@ -88,6 +88,11 @@ _eoc:
     slli    t1, a0, 1
     addi    t1, t1, 1
     sw      t1, 0(t0)
+#ifdef BANSHEE_SIMULATION
+    la      a0, __l2_start // load the address to the entry point
+    wfi
+    jr      a0
+#endif
     la      ra, __rom_start
     ret
 
