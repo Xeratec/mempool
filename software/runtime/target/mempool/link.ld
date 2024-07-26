@@ -12,15 +12,14 @@ ENTRY(_start)
 SECTIONS {
   /* Sequential region on L1 */
   /* Use dynamic allocation with `domain_malloc` */
-  .l1_seq (NOLOAD): {
+  .l1_seq : {
     . = __seq_end;
   } > l1
 
   /* Interleaved region on L1 */
-  .l1 (NOLOAD): {
+  .l1 : {
     *(.l1_prio)
     *(.l1)
-    *(.bss)
     __l1_alloc_base = ALIGN(0x10);
     __heap_start = .;
   } > l1
@@ -50,8 +49,10 @@ SECTIONS {
   .data           : {
     . = ALIGN(0x10);
     *(.data)
+    *(.data.*)
   } > l2
   .sdata2 : {
+    . = ALIGN(0x10);
     *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
   } > l2
   .sdata : {
@@ -71,9 +72,5 @@ SECTIONS {
     . = ALIGN(0x10);
     *(.l2)
     __l2_alloc_base = ALIGN(0x10);
-  } > l2
-
-  .comment : {
-    *(.comment)
   } > l2
 }

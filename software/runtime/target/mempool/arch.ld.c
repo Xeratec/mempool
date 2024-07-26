@@ -5,8 +5,8 @@
 /* This file will get processed by the precompiler to expand all macros. */
 
 MEMORY {
-  l1 (R) : ORIGIN = 0x00000000, LENGTH = (NUM_CORES * BANKING_FACTOR * L1_BANK_SIZE)
-  l2     : ORIGIN = L2_BASE   , LENGTH = L2_SIZE
+  l1 (RW) : ORIGIN = 0x00000000, LENGTH = (NUM_EFF_CORES * BANKING_FACTOR * 0x400)-1 /* NUM_CORES * 4 * 1KiB per bank */
+  l2 (RWX)    : ORIGIN = L2_BASE   , LENGTH = L2_SIZE
   rom (R): ORIGIN = BOOT_ADDR , LENGTH = 0x00001000
 }
 
@@ -21,14 +21,13 @@ SECTIONS {
 
   // Stack size
   __stack_start = __l1_start;
-  __stack_end = __l1_start + (NUM_CORES * STACK_SIZE);
+  __stack_end = __l1_start + (NUM_EFF_CORES * STACK_SIZE);
 
   // Sequential region size
   __seq_start = __l1_start;
-  __seq_end = __l1_start + (NUM_CORES * SEQ_MEM_SIZE);
+  __seq_end = __l1_start + (NUM_EFF_CORES * SEQ_MEM_SIZE);
 
   // Heap size (start address is re-assigned in link.ld)
-  __heap_start = __l1_start;
   __heap_end = __l1_end;
 
   // Hardware register location

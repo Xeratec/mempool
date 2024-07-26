@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define NUM_BANKS_PER_TILE NUM_CORES_PER_TILE *BANKING_FACTOR
+#define NUM_BANKS_PER_TILE (NUM_CORES_PER_TILE * BANKING_FACTOR)
 
 extern char l1_alloc_base;
 extern uint32_t atomic_barrier;
@@ -31,7 +31,7 @@ typedef uint32_t mempool_id_t;
 typedef uint32_t mempool_timer_t;
 
 /// Obtain the number of cores in the current cluster.
-static inline mempool_id_t mempool_get_core_count() { return NUM_CORES; }
+static inline mempool_id_t mempool_get_core_count() { return NUM_EFF_CORES; }
 
 /// Obtain the ID of the current core.
 static inline mempool_id_t mempool_get_core_id() {
@@ -41,32 +41,22 @@ static inline mempool_id_t mempool_get_core_id() {
 }
 
 /// Obtain the number of tiles in the current cluster.
-static inline uint32_t mempool_get_tile_count() {
-  return NUM_CORES / NUM_CORES_PER_TILE;
-}
+static inline uint32_t mempool_get_tile_count() { return NUM_EFF_CORES / NUM_CORES_PER_TILE; }
 
 /// Obtain the ID of the tile the current core is in.
-static inline uint32_t mempool_get_tile_id() {
-  return mempool_get_core_id() / NUM_CORES_PER_TILE;
-}
+static inline uint32_t mempool_get_tile_id() { return mempool_get_core_id() / NUM_CORES_PER_TILE; }
 
 /// Obtain the number of groups in the current cluster.
 static inline uint32_t mempool_get_group_count() { return NUM_GROUPS; }
 
 /// Obtain the ID of the group the current core is in.
-static inline uint32_t mempool_get_group_id() {
-  return mempool_get_core_id() / (NUM_CORES / NUM_GROUPS);
-}
+static inline uint32_t mempool_get_group_id() { return mempool_get_core_id() / (NUM_CORES / NUM_GROUPS); }
 
 /// Obtain the number of cores per tile in the current cluster
-static inline uint32_t mempool_get_core_count_per_tile() {
-  return NUM_CORES_PER_TILE;
-}
+static inline uint32_t mempool_get_core_count_per_tile() { return NUM_CORES_PER_TILE; }
 
 /// Obtain the number of cores per group in the current cluster
-static inline uint32_t mempool_get_core_count_per_group() {
-  return NUM_CORES / NUM_GROUPS;
-}
+static inline uint32_t mempool_get_core_count_per_group() { return NUM_CORES / NUM_GROUPS; }
 
 /// Initialization
 static inline void mempool_init(const uint32_t core_id) {
@@ -79,11 +69,11 @@ static inline void mempool_init(const uint32_t core_id) {
     // Initialize L1 Sequential Heap Allocator per Tile
     extern uint32_t __seq_start;
     // The stack is in the sequential region
-    uint32_t seq_heap_offset = NUM_CORES_PER_TILE * STACK_SIZE;
+    uint32_t seq_heap_offset = mempool_get_core_count_per_tile() * STACK_SIZE;
     // preceded by the queues (XQUEUE_SIZE in words)
     seq_heap_offset += NUM_BANKS_PER_TILE * XQUEUE_SIZE * sizeof(uint32_t);
     // The total sequential memory per tile in bytes
-    uint32_t seq_total_size = NUM_CORES_PER_TILE * SEQ_MEM_SIZE;
+    uint32_t seq_total_size = mempool_get_core_count_per_tile() * SEQ_MEM_SIZE;
     // The base is the start address + the offset due to the queues and stack
     uint32_t seq_heap_base = (uint32_t)&__seq_start + seq_heap_offset;
     uint32_t seq_heap_size = seq_total_size - seq_heap_offset;
@@ -129,9 +119,7 @@ static inline void mempool_wfi() { asm volatile("wfi"); }
 // If core_id equals -1, wake up all cores.
 static inline void wake_up(uint32_t core_id) { wake_up_reg = core_id; }
 static inline void wake_up_all() { wake_up((uint32_t)-1); }
-static inline void wake_up_group(uint32_t group_mask) {
-  wake_up_group_reg = group_mask;
-}
+static inline void wake_up_group(uint32_t group_mask) { wake_up_group_reg = group_mask; }
 static inline void wake_up_all_group() { wake_up_group((uint32_t)-1); }
 
 static inline void wake_up_tile(uint32_t group_id, uint32_t tile_mask) {
@@ -178,8 +166,7 @@ static inline void wake_up_tile(uint32_t group_id, uint32_t tile_mask) {
 // signature: `dump_errors(uint32_t val)`, which will print the given value via
 // the 8th register.
 // Alternatively, the `write_csr(reg, val)` macro can be used directly.
-#define dump(name, reg)                                                        \
-  static                                                                       \
-      __attribute__((always_inline)) inline void dump_##name(uint32_t val) {   \
-    asm volatile("csrw " #reg ", %0" ::"rK"(val));                             \
+#define dump(name, reg)                                                                                                \
+  static __attribute__((always_inline)) inline void dump_##name(uint32_t val) {                                        \
+    asm volatile("csrw " #reg ", %0" ::"rK"(val));                                                                     \
   }
