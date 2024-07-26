@@ -25,6 +25,7 @@ static inline void dma_config(bool decouple, bool deburst, bool serialize) {
   config |= (uint32_t)decouple << MEMPOOL_DMA_FRONTEND_CONF_DECOUPLE_BIT;
   config |= (uint32_t)deburst << MEMPOOL_DMA_FRONTEND_CONF_DEBURST_BIT;
   config |= (uint32_t)serialize << MEMPOOL_DMA_FRONTEND_CONF_SERIALIZE_BIT;
+  __sync_synchronize(); // Full memory barrier
   *_dma_conf_reg = config;
 }
 
@@ -42,35 +43,12 @@ static inline uint32_t dma_done() {
 
 static inline void dma_wait() {
   while (!dma_done())
+    // while (!dma_idle())
     ;
 }
 
-void dma_memcpy_nonblocking(void *dest, const void *src, size_t len) {
-  volatile uint32_t *_dma_src_reg =
-      (volatile uint32_t *)(DMA_BASE +
-                            MEMPOOL_DMA_FRONTEND_SRC_ADDR_REG_OFFSET);
-  volatile uint32_t *_dma_dst_reg =
-      (volatile uint32_t *)(DMA_BASE +
-                            MEMPOOL_DMA_FRONTEND_DST_ADDR_REG_OFFSET);
-  volatile uint32_t *_dma_len_reg =
-      (volatile uint32_t *)(DMA_BASE +
-                            MEMPOOL_DMA_FRONTEND_NUM_BYTES_REG_OFFSET);
-  volatile uint32_t *_dma_id_reg =
-      (volatile uint32_t *)(DMA_BASE + MEMPOOL_DMA_FRONTEND_NEXT_ID_REG_OFFSET);
-  // Configure the DMA
-  *_dma_src_reg = (uint32_t)src;
-  *_dma_dst_reg = (uint32_t)dest;
-  *_dma_len_reg = (uint32_t)len;
-  // Full memory barrier
-  __sync_synchronize();
-  // Launch the transfer
-  (void)*_dma_id_reg;
-  // Full memory barrier
-  __sync_synchronize();
-}
+void dma_memcpy_nonblocking(void *dest, const void *src, size_t len);
 
-void dma_memcpy_blocking(void *dest, const void *src, size_t len) {
-  dma_memcpy_nonblocking(dest, src, len);
-  dma_wait();
-}
+void dma_memcpy_blocking(void *dest, const void *src, size_t len);
+
 #endif // _DMA_H_
